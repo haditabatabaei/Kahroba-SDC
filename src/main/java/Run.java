@@ -1,5 +1,6 @@
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Iterator;
 
 public class Run {
     public static final String CONST_AUSTRALIA_19002009 = "Australia19002009";
@@ -100,9 +101,10 @@ public class Run {
     private static void runCompleteTask(Netter netter, Filer filer, Logger logger) {
 
         System.out.println("Started Good.");
-        Profiler buggedProfiler = filer.readProfilerFromDisk(new File("profiler-bugged.ksdc"));
+        checkTeacher(netter, filer);
+//        Profiler buggedProfiler = filer.readProfilerFromDisk(new File("profiler-bugged.ksdc"));
 
-        System.out.println("bugged profiles fixed : " + buggedProfiler.getNumberOfEmails() + " / " + buggedProfiler.getNumberOfProfiles());
+//        System.out.println("bugged profiles fixed : " + buggedProfiler.getNumberOfEmails() + " / " + buggedProfiler.getNumberOfProfiles());
 //        findBuggedProfiles(netter, filer, logger);
 
 //        startNetworkCrawler(netter, filer, CONST_AUSTRALIA_20102050, 0, 0, true, false);
@@ -114,11 +116,17 @@ public class Run {
 
 //        fixBuggedProfiles(netter, filer, logger);
 
-
+//        Profiler completeProfiler = filer.readProfilerFromDisk(new File("profiler-complete-withoutBugged.ksdc"));
+//        filer.exportProfilerToJson(completeProfiler, "completeBugFix", true, false, true, true, true, true);
     }
 
     private static void fixBuggedProfiles(Netter netter, Filer filer, Logger logger) {
         Profiler buggedProfiler = filer.readProfilerFromDisk(new File("profiler-bugged.ksdc"));
+        Profiler completeWithoutBugged = filer.readProfilerFromDisk(new File("profiler-complete-withoutBugged.ksdc"));
+
+        System.out.println(buggedProfiler.getNumberOfEmails() + " / " + buggedProfiler.getNumberOfProfiles());
+        System.out.println(completeWithoutBugged.getNumberOfEmails() + " / " + completeWithoutBugged.getNumberOfProfiles());
+
         for (Profile profile : buggedProfiler.getProfiles()) {
             try {
                 System.out.println("FIXING PROFILE INDEX : " + buggedProfiler.getProfiles().indexOf(profile) + " / " + buggedProfiler.getNumberOfProfiles());
@@ -128,29 +136,38 @@ public class Run {
                 profile.extractHtmlDocument();
                 profile.findMyJournals();
                 netter.getProfileEmail(profile, "bugged");
-
+                completeWithoutBugged.addProfile(profile);
             } catch (NullPointerException nullEx) {
                 System.out.println("null exception catched.all systems nominal");
             }
         }
 
-        filer.saveProfiler(buggedProfiler, "bugged");
+        filer.saveProfiler(buggedProfiler, "bugged-fixed");
+        filer.saveProfiler(completeWithoutBugged, "complete-withoutBugged");
+
+        System.out.println(buggedProfiler.getNumberOfEmails() + " / " + buggedProfiler.getNumberOfProfiles());
+        System.out.println(completeWithoutBugged.getNumberOfEmails() + " / " + completeWithoutBugged.getNumberOfProfiles());
     }
 
     private static void findBuggedProfiles(Netter netter, Filer filer, Logger logger) {
-        Profiler profiler = filer.readProfilerFromDisk(new File("profiler-fullProfiler.ksdc"));
+        Profiler completeProfiler = filer.readProfilerFromDisk(new File("profiler-fullProfiler.ksdc"));
+        System.out.println("number of all profiles before removing bugged ones : " + completeProfiler.getNumberOfProfiles());
 //        profiler.printSummaryProfiles();
         Profiler buggedProfiler = new Profiler();
-        for (Profile profile : profiler.getProfiles()) {
-            profile.extractHtmlDocument();
-            if (profile.isBuggedHtmlDocument()) {
-                buggedProfiler.addProfile(profile);
-                profile.printSummary();
+        Iterator iterator = completeProfiler.getProfiles().iterator();
+        while (iterator.hasNext()) {
+            Profile currentProfile = (Profile) iterator.next();
+            currentProfile.extractHtmlDocument();
+            if (currentProfile.isBuggedHtmlDocument()) {
+                buggedProfiler.addProfile(currentProfile);
+                iterator.remove();
             }
         }
 
-        System.out.println(buggedProfiler.getNumberOfProfiles());
+        System.out.println("number of bugged profiles : " + buggedProfiler.getNumberOfProfiles());
+        System.out.println("number of all profiles without bugged : " + completeProfiler.getNumberOfProfiles());
         filer.saveProfiler(buggedProfiler, "bugged");
+        filer.saveProfiler(completeProfiler, "complete-withoutBugged");
     }
 
     private static void exportEntireDiskData(Filer filer, boolean closeAfterDone) {
@@ -188,5 +205,24 @@ public class Run {
         if (closeAfterDone) {
             System.exit(0);
         }
+    }
+
+    private static void checkTeacher(Netter netter, Filer filer) {
+        Profiler profiler = filer.readProfilerFromDisk(new File("profiler-complete-withoutBugged.ksdc"));
+        Profiler teacherProfiler = new Profiler();
+        System.out.println(profiler.getNumberOfEmails() + " / " + profiler.getNumberOfProfiles());
+        for (Profile profile : profiler.getProfiles()) {
+            profile.extractHtmlEmailDocument();
+//                if (profile.getHtmlEmailFile() != null) {
+//                    profile.printSummary();
+//                }
+            System.out.println("Checking " + profiler.getProfiles().indexOf(profile) + " / " + profiler.getNumberOfProfiles());
+            if (profile.isTeacher()) {
+                teacherProfiler.addProfile(profile);
+            }
+
+
+        }
+        teacherProfiler.printSummaryProfiles();
     }
 }

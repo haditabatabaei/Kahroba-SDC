@@ -121,7 +121,6 @@ public class Netter {
 
     }
 
-
     public void getProfileEmail(Profile profile, String country) {
         try {
             if (profile.getHtmlFile() != null) {

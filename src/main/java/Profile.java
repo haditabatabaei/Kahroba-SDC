@@ -1,3 +1,8 @@
+import org.checkerframework.checker.formatter.FormatUtil;
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -26,14 +31,15 @@ public class Profile implements Serializable {
     private File htmlFile;
     private File htmlEmailFile;
     private transient Document htmlDocument;
+    private transient Document htmlEmailDocument;
     private int numberOfPredictedJournals;
 
     public Profile() {
-        journals = new ArrayList<>();
-        universities = new ArrayList<>();
-        skills = new ArrayList<>();
-        experiences = new ArrayList<>();
-        websites = new ArrayList<>();
+        journals = new ArrayList<Journal>();
+        universities = new ArrayList<University>();
+        skills = new ArrayList<String>();
+        experiences = new ArrayList<Experience>();
+        websites = new ArrayList<String>();
     }
 
     public ArrayList<String> getWebsites() {
@@ -112,7 +118,7 @@ public class Profile implements Serializable {
                 }
 
                 htmlDocument = Jsoup.parse(builder.toString());
-            }else{
+            } else {
 //                System.out.println();
             }
         } catch (FileNotFoundException e) {
@@ -122,8 +128,8 @@ public class Profile implements Serializable {
         }
     }
 
-    public boolean isBuggedHtmlDocument(){
-        if(htmlDocument != null){
+    public boolean isBuggedHtmlDocument() {
+        if (htmlDocument != null) {
             return htmlDocument.body().text().contains("Something isn't working. If there's still a problem, please contact your administrator or helpdesk.");
         }
         return false;
@@ -364,7 +370,122 @@ public class Profile implements Serializable {
         this.mendeley = mendeley;
     }
 
-    public boolean equals(Profile profile){
+    public boolean equals(Profile profile) {
         return profile.getFullName().equals(profile.getFullName());
+    }
+
+    public void extractHtmlEmailDocument() {
+        if (htmlEmailFile != null) {
+            try {
+                BufferedReader bufferedReader = new BufferedReader(new FileReader(htmlFile));
+                String line;
+                StringBuilder builder = new StringBuilder();
+                while ((line = bufferedReader.readLine()) != null) {
+                    builder.append(line);
+                }
+                bufferedReader.close();
+                htmlEmailDocument = Jsoup.parse(builder.toString());
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    public boolean isTeacher() {
+        boolean isTeacher = false;
+//        extractHtmlEmailDocument();
+        if (htmlEmailFile != null) {
+            if (htmlEmailDocument != null) {
+                try {
+
+                    Element scriptElement = htmlEmailDocument.select("script[data-iso-key='_0']").first();
+                    String txt = null;
+                    if (scriptElement != null) {
+                        txt = scriptElement.toString().replace("<script type=\"application/json\" data-iso-key=\"_0\">", "").replace("</script>", "");
+                        JSONParser jsonParser = new JSONParser();
+//            System.out.println(scriptElement.text());
+
+                        Object object = jsonParser.parse(txt);
+                        JSONObject jsonObject = (JSONObject) object;
+                        JSONArray jsonArray = (JSONArray) ((JSONObject) jsonObject.get("authors")).get("content");
+                        JSONObject contentObj = (JSONObject) jsonArray.get(0);
+                        JSONArray contentInfoBox = (JSONArray) contentObj.get("$$");
+
+
+                        for (int i = 0; i < contentInfoBox.size(); i++) {
+                            JSONObject contentBox = (JSONObject) contentInfoBox.get(i);
+
+                            String contentBoxTitle = (String) contentBox.get("#name");
+
+                            String givenName = "";
+                            String givenSurname = "";
+                            String email = "";
+                            String authorId = null;
+                            if (contentBoxTitle.equals("author")) {
+                                JSONArray authorsInfoArr = (JSONArray) contentBox.get("$$");
+                                JSONObject idObj = (JSONObject) contentBox.get("$");
+                                authorId = (String) idObj.get("author-id");
+
+
+                                //THIS IS WILL EXTRACT USER PERSONAL DATA
+                                for (int j = 0; j < authorsInfoArr.size(); j++) {
+//                    System.out.println("Getting mini info");
+                                    JSONObject authorInfoBox = (JSONObject) authorsInfoArr.get(j);
+                                    String boxName = (String) authorInfoBox.get("#name");
+                                    String boxValue = (String) authorInfoBox.get("_");
+
+                                    switch (boxName) {
+                                        case "given-name":
+                                            givenName = boxValue;
+                                            break;
+                                        case "surname":
+                                            givenSurname = boxValue;
+                                            break;
+                                        case "e-address":
+                                            email = boxValue;
+                                            break;
+                                    }
+                                }
+
+                            } else if (contentBoxTitle.equals("affiliation")) {
+                                for (int j = 0; j < contentInfoBox.size(); j++) {
+                                    JSONObject contentBoxDup = (JSONObject) contentInfoBox.get(i);
+
+                                    String contentBoxTitleDup = (String) contentBox.get("#name");
+                                    if (contentBoxTitleDup.equals("affiliation")) {
+                                        String affToDistinc = (String) (((JSONObject) contentBoxDup.get("$")).get("affiliation-id"));
+                                        if (authorId.equals(affToDistinc)) {
+                                            JSONArray $$jsonArray = (JSONArray) contentBoxDup.get("$$");
+                                            for (int k = 0; k < $$jsonArray.size(); k++) {
+                                                JSONObject current$$Obj = (JSONObject) $$jsonArray.get(k);
+                                                String objName = (String) current$$Obj.get("#name");
+                                                String objValue = (String) current$$Obj.get("_");
+                                                if (objName.equals("textfn")) {
+                                                    String lower = objValue.toLowerCase();
+                                                    System.out.println(lower);
+                                                    if (lower.contains("assistant") || lower.contains("professor") || lower.contains("assistance") || lower.contains("assistant professor")) {
+                                                        return true;
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } catch (ParseException e) {
+                    e.printStackTrace();
+                }
+
+                return false;
+            } else {
+                return false;
+            }
+        } else {
+            return false;
+        }
     }
 }

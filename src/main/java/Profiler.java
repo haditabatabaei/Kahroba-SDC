@@ -49,6 +49,10 @@ public class Profiler implements Serializable {
         return counter;
     }
 
+    public void setProfiles(ArrayList<Profile> profiles){
+        this.profiles = profiles;
+    }
+
     public void printAllProfilesWithEmail(){
         for(Profile profile : profiles){
             if(!(profile.getEmail() == null || profile.getEmail().isEmpty())){

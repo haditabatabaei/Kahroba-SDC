@@ -13,7 +13,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 
 public class Filer {
-    ArrayList<File> files;
+    private ArrayList<File> files;
 
     public Filer() {
         files = new ArrayList<>();
@@ -141,6 +141,10 @@ public class Filer {
                 files.add(file);
             }
         }
+    }
+
+    public ArrayList<File> getFiles() {
+        return files;
     }
 
     public void updateProfiler(Profiler profiler) {
@@ -435,7 +439,7 @@ public class Filer {
         }
     }
 
-    public boolean checkBuggedHtmlFile(File file){
+    public boolean checkBuggedHtmlFile(File file) {
         boolean bugged = false;
 //        if()
         return bugged;

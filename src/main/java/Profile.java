@@ -129,10 +129,19 @@ public class Profile implements Serializable {
     }
 
     public boolean isBuggedHtmlDocument() {
-        if (htmlDocument != null) {
-            return htmlDocument.body().text().contains("Something isn't working. If there's still a problem, please contact your administrator or helpdesk.");
-        }
-        return false;
+        if (htmlFile != null) {
+            if (htmlDocument != null) {
+                return htmlDocument.body().text().contains("Something isn't working. If there's still a problem, please contact your administrator or helpdesk.");
+            } else return true;
+        } else return true;
+    }
+
+    public boolean isBuggedHtmlFile() {
+        return htmlFile == null;
+    }
+
+    public boolean isBuggedHtmlEmailFile() {
+        return htmlEmailFile == null;
     }
 
     public void findMyJournals() {
@@ -371,7 +380,7 @@ public class Profile implements Serializable {
     }
 
     public boolean equals(Profile profile) {
-        return profile.getFullName().equals(profile.getFullName());
+        return getFullName().equals(profile.getFullName());
     }
 
     public void extractHtmlEmailDocument() {

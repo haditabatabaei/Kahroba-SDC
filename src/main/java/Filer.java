@@ -30,7 +30,6 @@ public class Filer {
 
             while ((line = reader.readLine()) != null) {
                 counter++;
-//                System.out.println("#" + counter + " : " + line);
                 JSONObject currentStudentObject = (JSONObject) parser.parse(line);
                 listOfGermany.add(currentStudentObject);
             }
@@ -97,7 +96,6 @@ public class Filer {
             }
             System.out.println(profiler.getNumberOfEmails() + " / " + profiler.getNumberOfProfilesWithJorunals() + " / " + profiler.getNumberOfProfiles());
             return profiler;
-//            profiler.printSummaryProfiles();
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         } catch (IOException e) {
@@ -184,7 +182,6 @@ public class Filer {
 
     public void saveProfiler(Profiler profiler, String country) {
         File target = new File("profiler-new-" + country + ".ksdc");
-//        if (!target.exists()) {
         try {
             ObjectOutputStream objectOutputStream = new ObjectOutputStream(new FileOutputStream(target));
             objectOutputStream.writeObject(profiler);
@@ -192,7 +189,6 @@ public class Filer {
         } catch (IOException e) {
             e.printStackTrace();
         }
-//        }
     }
 
     public Profiler readCsvData(File file) {
@@ -215,21 +211,16 @@ public class Filer {
                         .replaceAll("\"", "")
                         .trim();
 
-//                System.out.println(universities);
                 if (!universities.isEmpty()) {
-//                System.out.println(universities);
                     String[] universitiesArr = universities.split(",");
 
                     for (int i = 0; i < universitiesArr.length; i++) {
 
                         String fullUniString = universitiesArr[i].trim();
 
-//                        System.out.println(fullUniString);
-                        // System.out.println(fullUniString.trim().split("||"));
 
                         String[] currentUniData = fullUniString.split("\\|\\|");
 
-//                        System.out.println(currentUniData[0] + currentUniData[1] + currentUniData[2] + currentUniData[3]);
                         String tempName = " ", tempDegree = " ", tempStudyField = " ", tempDate = " ";
                         switch (currentUniData.length) {
                             case 1:
@@ -293,15 +284,12 @@ public class Filer {
     }
 
     public void addDataToProfiler(Profiler profiler, File file) {
-//        File file = new File("foo.csv");
         try {
             BufferedReader bufferedReader = new BufferedReader(new FileReader(file));
             String line;
             bufferedReader.readLine();
             while ((line = bufferedReader.readLine()) != null) {
-//              System.out.println(line);
                 String[] tempCurrentLineRecords = line.split(",");
-//              System.out.println(tempCurrentLineRecords.length);
                 profiler.addEmptyProfile();
                 Profile tempProfile = profiler.getRecentlyAddedProfile();
                 tempProfile.setId(tempCurrentLineRecords[0]);
@@ -451,7 +439,6 @@ public class Filer {
                     jourObj.put("authors", authorsArr);
 
                     journalsArr.add(jourObj);
-//                    System.out.println(journal.toString());
                 }
 
 
@@ -469,11 +456,5 @@ public class Filer {
         } catch (IOException e) {
             e.printStackTrace();
         }
-    }
-
-    public boolean checkBuggedHtmlFile(File file) {
-        boolean bugged = false;
-//        if()
-        return bugged;
     }
 }

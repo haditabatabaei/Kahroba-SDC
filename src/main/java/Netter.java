@@ -143,7 +143,6 @@ public class Netter {
                     }
                     httpsURLConnection.disconnect();
                     File target = new File("dataEmailDir\\" + country + "\\" + profile.getFullName() + ".html");
-//                    target.getParentFile().mkdirs();
                     target.createNewFile();
                     BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(target));
                     bufferedWriter.write(stringBuffer.toString());
@@ -152,11 +151,9 @@ public class Netter {
                     profile.setHtmlEmailFile(target);
                     Document document = Jsoup.parse(stringBuffer.toString());
                     Element scriptElement = document.select("script[data-iso-key='_0']").first();
-//            System.out.println(scriptElement);
                     String txt = scriptElement.toString().replace("<script type=\"application/json\" data-iso-key=\"_0\">", "").replace("</script>", "");
 
                     JSONParser jsonParser = new JSONParser();
-//            System.out.println(scriptElement.text());
 
                     Object object = jsonParser.parse(txt);
                     JSONObject jsonObject = (JSONObject) object;

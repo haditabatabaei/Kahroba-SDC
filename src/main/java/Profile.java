@@ -30,9 +30,13 @@ public class Profile implements Serializable {
     private String id;
     private File htmlFile;
     private File htmlEmailFile;
+    private int index;
+    private String country;
     private transient Document htmlDocument;
     private transient Document htmlEmailDocument;
     private int numberOfPredictedJournals;
+    private boolean hasEmail;
+    private boolean isTeacher;
 
     public Profile() {
         journals = new ArrayList<Journal>();
@@ -40,6 +44,40 @@ public class Profile implements Serializable {
         skills = new ArrayList<String>();
         experiences = new ArrayList<Experience>();
         websites = new ArrayList<String>();
+        hasEmail = false;
+        isTeacher = false;
+    }
+
+    public boolean getHasEmail() {
+        return hasEmail;
+    }
+
+    public void setHasEmail(boolean hasEmail) {
+        this.hasEmail = hasEmail;
+    }
+
+    public void setTeacher(boolean teacher) {
+        isTeacher = teacher;
+    }
+
+    public boolean getIsTeacher(){
+        return isTeacher;
+    }
+
+    public int getIndex() {
+        return index;
+    }
+
+    public void setIndex(int index) {
+        this.index = index;
+    }
+
+    public void setCountry(String country) {
+        this.country = country;
+    }
+
+    public String getCountry() {
+        return country;
     }
 
     public ArrayList<String> getWebsites() {
@@ -110,6 +148,7 @@ public class Profile implements Serializable {
     public void extractHtmlDocument() {
         try {
             if (htmlFile != null) {
+//                System.out.println("extracting html document");
                 BufferedReader reader = new BufferedReader(new FileReader(htmlFile));
                 StringBuilder builder = new StringBuilder();
                 String line;
@@ -118,8 +157,6 @@ public class Profile implements Serializable {
                 }
 
                 htmlDocument = Jsoup.parse(builder.toString());
-            } else {
-//                System.out.println();
             }
         } catch (FileNotFoundException e) {
             e.printStackTrace();
@@ -146,6 +183,7 @@ public class Profile implements Serializable {
 
     public void findMyJournals() {
         if (htmlFile != null) {
+            System.out.println("inside extracting journals");
             Element wrapperOrderedList = htmlDocument.select("ol.search-result-wrapper").first();
             if (wrapperOrderedList != null) {
                 Elements resultListItems = wrapperOrderedList.select("li.ResultItem");
@@ -155,7 +193,9 @@ public class Profile implements Serializable {
                         String titleText = null, url = null, date = null;
                         ArrayList<String> authors = new ArrayList<>();
                         titleText = currentJournalTitleLink.text();
+//                        System.out.println(titleText);
                         url = currentJournalTitleLink.attr("href");
+
                         try {
                             Element dateElement = result.select("ol.SubType").first().children().get(2);
                             if (dateElement != null) {
@@ -168,20 +208,22 @@ public class Profile implements Serializable {
                         Element authorsWrapper = result.selectFirst("ol.Authors");
                         Elements authorItemElements = authorsWrapper.children();
                         for (Element authorElement : authorItemElements) {
-                            authors.add(authorElement.text());
+                            authors.add(authorElement.select("span.author").html().replaceAll("<em>","").replaceAll("</em>","").replaceAll("\"",""));
+//                            System.out.println(authors.get(authors.size() - 1));
                         }
 
                         String allegedAuthor = "";
 
                         for (String author : authors) {
-                            if (fullName.contains(author) && author.contains(fullName)) {
+                            if (fullName.toLowerCase().contains(author.toLowerCase()) && author.toLowerCase().contains(fullName.toLowerCase())) {
                                 allegedAuthor = author;
-                                System.out.println(" Alleged: " + author + " | REAL : " + fullName);
+//                                System.out.println(" Alleged: " + author + " | REAL : " + fullName);
                                 break;
                             }
                         }
 
                         if (!allegedAuthor.isEmpty()) {
+//                            System.out.println("adding journal");
                             journals.add(new Journal(titleText, url, authors, date));
                         }
 //                    tempJournal.print();
@@ -403,98 +445,254 @@ public class Profile implements Serializable {
     }
 
     public boolean isTeacher() {
-        boolean isTeacher = false;
-//        extractHtmlEmailDocument();
+//        System.out.println("inside is teacher");
         if (htmlEmailFile != null) {
+            try {
+                htmlEmailDocument = Jsoup.parse(htmlEmailFile, "utf-8");
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
             if (htmlEmailDocument != null) {
+
                 try {
-
                     Element scriptElement = htmlEmailDocument.select("script[data-iso-key='_0']").first();
-                    String txt = null;
                     if (scriptElement != null) {
-                        txt = scriptElement.toString().replace("<script type=\"application/json\" data-iso-key=\"_0\">", "").replace("</script>", "");
+                        String innerText = scriptElement.html();
                         JSONParser jsonParser = new JSONParser();
-//            System.out.println(scriptElement.text());
 
-                        Object object = jsonParser.parse(txt);
-                        JSONObject jsonObject = (JSONObject) object;
-                        JSONArray jsonArray = (JSONArray) ((JSONObject) jsonObject.get("authors")).get("content");
-                        JSONObject contentObj = (JSONObject) jsonArray.get(0);
-                        JSONArray contentInfoBox = (JSONArray) contentObj.get("$$");
+                        JSONObject jsonObject = (JSONObject) jsonParser.parse(innerText);
+                        JSONArray jsonArray = (JSONArray) ((JSONObject) jsonObject.get("biographies")).get("content");
 
 
-                        for (int i = 0; i < contentInfoBox.size(); i++) {
-                            JSONObject contentBox = (JSONObject) contentInfoBox.get(i);
-
-                            String contentBoxTitle = (String) contentBox.get("#name");
-
-                            String givenName = "";
-                            String givenSurname = "";
-                            String email = "";
-                            String authorId = null;
-                            if (contentBoxTitle.equals("author")) {
-                                JSONArray authorsInfoArr = (JSONArray) contentBox.get("$$");
-                                JSONObject idObj = (JSONObject) contentBox.get("$");
-                                authorId = (String) idObj.get("author-id");
-
-
-                                //THIS IS WILL EXTRACT USER PERSONAL DATA
-                                for (int j = 0; j < authorsInfoArr.size(); j++) {
-//                    System.out.println("Getting mini info");
-                                    JSONObject authorInfoBox = (JSONObject) authorsInfoArr.get(j);
-                                    String boxName = (String) authorInfoBox.get("#name");
-                                    String boxValue = (String) authorInfoBox.get("_");
-
-                                    switch (boxName) {
-                                        case "given-name":
-                                            givenName = boxValue;
-                                            break;
-                                        case "surname":
-                                            givenSurname = boxValue;
-                                            break;
-                                        case "e-address":
-                                            email = boxValue;
-                                            break;
-                                    }
-                                }
-
-                            } else if (contentBoxTitle.equals("affiliation")) {
-                                for (int j = 0; j < contentInfoBox.size(); j++) {
-                                    JSONObject contentBoxDup = (JSONObject) contentInfoBox.get(i);
-
-                                    String contentBoxTitleDup = (String) contentBox.get("#name");
-                                    if (contentBoxTitleDup.equals("affiliation")) {
-                                        String affToDistinc = (String) (((JSONObject) contentBoxDup.get("$")).get("affiliation-id"));
-                                        if (authorId.equals(affToDistinc)) {
-                                            JSONArray $$jsonArray = (JSONArray) contentBoxDup.get("$$");
-                                            for (int k = 0; k < $$jsonArray.size(); k++) {
-                                                JSONObject current$$Obj = (JSONObject) $$jsonArray.get(k);
-                                                String objName = (String) current$$Obj.get("#name");
-                                                String objValue = (String) current$$Obj.get("_");
-                                                if (objName.equals("textfn")) {
-                                                    String lower = objValue.toLowerCase();
-                                                    System.out.println(lower);
-                                                    if (lower.contains("assistant") || lower.contains("professor") || lower.contains("assistance") || lower.contains("assistant professor")) {
-                                                        return true;
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
+                        for (Object currentJsonObject : jsonArray) {
+                            JSONObject tempBioObject = (JSONObject) currentJsonObject;
+                            String stringObj = tempBioObject.toString().toLowerCase();
+                            if (stringObj.contains(fullName.toLowerCase())) {
+//                                System.out.println("contains profile name");
+                                if (stringObj.contains("professor") || stringObj.contains("assistant professor")) {
+//                                    System.out.println("is professor");
+//                                    System.out.println("-----------------------------");
+                                    return true;
                                 }
                             }
                         }
                     }
-                } catch (ParseException e) {
-                    e.printStackTrace();
+                } catch (Exception ex) {
+//                    System.out.println("Exception Catched");
+                    return false;
                 }
-
-                return false;
-            } else {
-                return false;
             }
-        } else {
-            return false;
         }
+        return false;
+
+//        boolean isTeacher = false;
+////        extractHtmlEmailDocument();
+//        if (htmlEmailFile != null) {
+//            if (htmlEmailDocument != null) {
+//                try {
+//                    try {
+////                        Document userEmailDoc = Jsoup.parse(new File("F:\\sneedskahroba\\src\\main\\java\\bakhshi.html"), "utf-8");
+//                        try {
+//
+//                            Element scriptElement = htmlEmailDocument.select("script[data-iso-key='_0']").first();
+//                            String txt = null;
+//                            if (scriptElement != null) {
+//                                txt = scriptElement.html();
+////                                System.out.println(txt);
+////                    System.exit(0);
+////                    txt = scriptElement.toString().replace("<script type=\"application/json\" data-iso-key=\"_0\">", "").replace("</script>", "");
+//                                JSONParser jsonParser = new JSONParser();
+////            System.out.println(scriptElement.text());
+//
+//                                JSONObject jsonObject = (JSONObject) jsonParser.parse(txt);
+////                    JSONObject jsonObject = (JSONObject) object;
+//                                JSONArray jsonArray = (JSONArray) ((JSONObject) jsonObject.get("biographies")).get("content");
+//
+//
+//                                for (int i = 0; i < jsonArray.size(); i++) {
+//                                    JSONObject tempBioObject = (JSONObject) jsonArray.get(i);
+//                                    String stringObj = tempBioObject.toString().toLowerCase();
+////                    System.out.println(stringObj);
+//                                    if (stringObj.contains("professor") || stringObj.contains("assistant professor")) {
+//                                        System.out.println("he is professor / assistant-professor");
+//                                    } else {
+//                                        System.out.println("he is nothing");
+////                        }
+////                        if(stringObj.contains("Behrooz Farkiani".toLowerCase())){
+////                        System.out.println("this is for behrooz");
+////                        if(stringObj.contains("professor") || stringObj.contains("assistant professor")){
+////                            System.out.println("he is professor / assistant-professor");
+////                        }else{
+////                            System.out.println("he is nothing");
+////                        }
+////                        JSONArray $$array = (JSONArray) tempBioObject.get("$$");
+//                                    }
+//                                }
+//
+//                                System.exit(0);
+//
+//
+//                                JSONObject contentObj = (JSONObject) jsonArray.get(0);
+//                                JSONArray contentInfoBox = (JSONArray) contentObj.get("$$");
+//
+//
+//                                for (int i = 0; i < contentInfoBox.size(); i++) {
+//                                    JSONObject contentBox = (JSONObject) contentInfoBox.get(i);
+//
+//                                    String contentBoxTitle = (String) contentBox.get("#name");
+//
+//                                    String givenName = "";
+//                                    String givenSurname = "";
+//                                    String email = "";
+//                                    String authorId = null;
+//                                    if (contentBoxTitle.equals("author")) {
+//                                        JSONArray authorsInfoArr = (JSONArray) contentBox.get("$$");
+//                                        JSONObject idObj = (JSONObject) contentBox.get("$");
+//                                        authorId = (String) idObj.get("author-id");
+//
+//
+//                                        //THIS IS WILL EXTRACT USER PERSONAL DATA
+//                                        for (int j = 0; j < authorsInfoArr.size(); j++) {
+////                    System.out.println("Getting mini info");
+//                                            JSONObject authorInfoBox = (JSONObject) authorsInfoArr.get(j);
+//                                            String boxName = (String) authorInfoBox.get("#name");
+//                                            String boxValue = (String) authorInfoBox.get("_");
+//
+//                                            switch (boxName) {
+//                                                case "given-name":
+//                                                    givenName = boxValue;
+//                                                    break;
+//                                                case "surname":
+//                                                    givenSurname = boxValue;
+//                                                    break;
+//                                                case "e-address":
+//                                                    email = boxValue;
+//                                                    break;
+//                                            }
+//                                        }
+//
+//                                    } else if (contentBoxTitle.equals("affiliation")) {
+//                                        for (int j = 0; j < contentInfoBox.size(); j++) {
+//                                            JSONObject contentBoxDup = (JSONObject) contentInfoBox.get(i);
+//
+//                                            String contentBoxTitleDup = (String) contentBox.get("#name");
+//                                            if (contentBoxTitleDup.equals("affiliation")) {
+//                                                String affToDistinc = (String) (((JSONObject) contentBoxDup.get("$")).get("affiliation-id"));
+//                                                if (authorId.equals(affToDistinc)) {
+//                                                    JSONArray $$jsonArray = (JSONArray) contentBoxDup.get("$$");
+//                                                    for (int k = 0; k < $$jsonArray.size(); k++) {
+//                                                        JSONObject current$$Obj = (JSONObject) $$jsonArray.get(k);
+//                                                        String objName = (String) current$$Obj.get("#name");
+//                                                        String objValue = (String) current$$Obj.get("_");
+//                                                        if (objName.equals("textfn")) {
+//                                                            String lower = objValue.toLowerCase();
+//                                                            System.out.println(lower);
+//                                                            if (lower.contains("assistant") || lower.contains("professor") || lower.contains("assistance") || lower.contains("assistant professor")) {
+////                                                    return true;
+//                                                            }
+//                                                        }
+//                                                    }
+//                                                }
+//                                            }
+//                                        }
+//                                    }
+//                                }
+//                            }
+//                        } catch (ParseException e) {
+//                            e.printStackTrace();
+//                        }
+//                    } catch (IOException e) {
+//                        e.printStackTrace();
+//                    }
+//
+//
+//                    Element scriptElement = htmlEmailDocument.select("script[data-iso-key='_0']").first();
+//                    String txt = null;
+//                    if (scriptElement != null) {
+//                        txt = scriptElement.toString().replace("<script type=\"application/json\" data-iso-key=\"_0\">", "").replace("</script>", "");
+//                        JSONParser jsonParser = new JSONParser();
+////            System.out.println(scriptElement.text());
+//
+//                        Object object = jsonParser.parse(txt);
+//                        JSONObject jsonObject = (JSONObject) object;
+//                        JSONArray jsonArray = (JSONArray) ((JSONObject) jsonObject.get("authors")).get("content");
+//                        JSONObject contentObj = (JSONObject) jsonArray.get(0);
+//                        JSONArray contentInfoBox = (JSONArray) contentObj.get("$$");
+//
+//
+//                        for (int i = 0; i < contentInfoBox.size(); i++) {
+//                            JSONObject contentBox = (JSONObject) contentInfoBox.get(i);
+//
+//                            String contentBoxTitle = (String) contentBox.get("#name");
+//
+//                            String givenName = "";
+//                            String givenSurname = "";
+//                            String email = "";
+//                            String authorId = null;
+//                            if (contentBoxTitle.equals("author")) {
+//                                JSONArray authorsInfoArr = (JSONArray) contentBox.get("$$");
+//                                JSONObject idObj = (JSONObject) contentBox.get("$");
+//                                authorId = (String) idObj.get("author-id");
+//
+//
+//                                //THIS IS WILL EXTRACT USER PERSONAL DATA
+//                                for (int j = 0; j < authorsInfoArr.size(); j++) {
+////                    System.out.println("Getting mini info");
+//                                    JSONObject authorInfoBox = (JSONObject) authorsInfoArr.get(j);
+//                                    String boxName = (String) authorInfoBox.get("#name");
+//                                    String boxValue = (String) authorInfoBox.get("_");
+//
+//                                    switch (boxName) {
+//                                        case "given-name":
+//                                            givenName = boxValue;
+//                                            break;
+//                                        case "surname":
+//                                            givenSurname = boxValue;
+//                                            break;
+//                                        case "e-address":
+//                                            email = boxValue;
+//                                            break;
+//                                    }
+//                                }
+//
+//                            } else if (contentBoxTitle.equals("affiliation")) {
+//                                for (int j = 0; j < contentInfoBox.size(); j++) {
+//                                    JSONObject contentBoxDup = (JSONObject) contentInfoBox.get(i);
+//
+//                                    String contentBoxTitleDup = (String) contentBox.get("#name");
+//                                    if (contentBoxTitleDup.equals("affiliation")) {
+//                                        String affToDistinc = (String) (((JSONObject) contentBoxDup.get("$")).get("affiliation-id"));
+//                                        if (authorId.equals(affToDistinc)) {
+//                                            JSONArray $$jsonArray = (JSONArray) contentBoxDup.get("$$");
+//                                            for (int k = 0; k < $$jsonArray.size(); k++) {
+//                                                JSONObject current$$Obj = (JSONObject) $$jsonArray.get(k);
+//                                                String objName = (String) current$$Obj.get("#name");
+//                                                String objValue = (String) current$$Obj.get("_");
+//                                                if (objName.equals("textfn")) {
+//                                                    String lower = objValue.toLowerCase();
+//                                                    System.out.println(lower);
+//                                                    if (lower.contains("assistant") || lower.contains("professor") || lower.contains("assistance") || lower.contains("assistant professor")) {
+//                                                        return true;
+//                                                    }
+//                                                }
+//                                            }
+//                                        }
+//                                    }
+//                                }
+//                            }
+//                        }
+//                    }
+//                } catch (ParseException e) {
+//                    e.printStackTrace();
+//                }
+//
+//                return false;
+//            } else {
+//                return false;
+//            }
+//        } else {
+//            return false;
+//        }
+
     }
 }

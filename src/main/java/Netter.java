@@ -31,7 +31,6 @@ public class Netter {
         config = new HashMap<>();
         keywords = new ArrayList<>();
         System.setProperty("webdriver.chrome.driver", "D:\\k1\\src\\main\\java\\chromedriver.exe");
-//        chromeDriver = new ChromeDriver();
     }
 
     public void setConfig(String authors, String show, String title, String volume, String issue, String page, ArrayList<String> keywords) {
@@ -113,6 +112,7 @@ public class Netter {
                 while ((line = reader.readLine()) != null) {
                     builder.append(line);
                 }
+                reader.close();
                 filer.saveToFile(builder.toString(), config.toString(), currentProfile, country);
             }
         } catch (IOException e) {
@@ -142,7 +142,7 @@ public class Netter {
                         stringBuffer.append(line);
                     }
                     httpsURLConnection.disconnect();
-                    File target = new File("newDataEmail\\" + country + "\\" + profile.getFullName() + ".html");
+                    File target = new File("dataEmailDir\\" + country + "\\" + profile.getFullName() + ".html");
 //                    target.getParentFile().mkdirs();
                     target.createNewFile();
                     BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(target));
@@ -165,7 +165,6 @@ public class Netter {
                     JSONArray authors = (JSONArray) contentObj.get("$$");
 
                     for (int i = 0; i < authors.size(); i++) {
-//                System.out.println("Getting info");
                         JSONObject author = (JSONObject) authors.get(i);
                         JSONArray authorsInfoArr = (JSONArray) author.get("$$");
                         String givenName = "";
@@ -173,7 +172,6 @@ public class Netter {
                         String email = "";
 
                         for (int j = 0; j < authorsInfoArr.size(); j++) {
-//                    System.out.println("Getting mini info");
                             JSONObject authorInfoBox = (JSONObject) authorsInfoArr.get(j);
                             String boxName = (String) authorInfoBox.get("#name");
                             String boxValue = (String) authorInfoBox.get("_");
@@ -190,7 +188,6 @@ public class Netter {
                                     break;
                             }
                         }
-//                        System.out.println(givenName + " " + givenSurname + " " + email);
                         if (profile.getFullName().toLowerCase().contains(givenName.toLowerCase()) && profile.getFullName().toLowerCase().contains(givenSurname.toLowerCase())) {
                             profile.setEmail(email);
                             break;
@@ -202,9 +199,6 @@ public class Netter {
             } else {
                 System.out.println("no html file");
             }
-
-
-//            System.out.println(authors);
         } catch (MalformedURLException e) {
             e.printStackTrace();
         } catch (IOException e) {
@@ -212,6 +206,5 @@ public class Netter {
         } catch (ParseException e) {
             e.printStackTrace();
         }
-
     }
 }

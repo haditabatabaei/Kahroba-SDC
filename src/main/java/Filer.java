@@ -19,7 +19,7 @@ public class Filer {
         files = new ArrayList<>();
     }
 
-    public Profiler readDataFromJSONfile(File jsonFile) {
+    public Profiler readDataFromJSONfile(File jsonFile, String country) {
         try {
             BufferedReader reader = new BufferedReader(new FileReader(jsonFile));
             StringBuilder builder = new StringBuilder();
@@ -91,8 +91,11 @@ public class Filer {
                     }
                 }
 
+                currentProfile.setCountry(country);
+
 
             }
+            System.out.println(profiler.getNumberOfEmails() + " / " + profiler.getNumberOfProfilesWithJorunals() + " / " + profiler.getNumberOfProfiles());
             return profiler;
 //            profiler.printSummaryProfiles();
         } catch (FileNotFoundException e) {
@@ -180,7 +183,7 @@ public class Filer {
     }
 
     public void saveProfiler(Profiler profiler, String country) {
-        File target = new File("profiler-" + country + ".ksdc");
+        File target = new File("profiler-new-" + country + ".ksdc");
 //        if (!target.exists()) {
         try {
             ObjectOutputStream objectOutputStream = new ObjectOutputStream(new FileOutputStream(target));
@@ -316,7 +319,7 @@ public class Filer {
     }
 
     public void saveToFile(String toSaveString, String title, Profile currentProfile, String country) {
-        File target = new File("newDir\\" + country + "\\" + title + ".html");
+        File target = new File("dataJournalDir\\" + country + "\\" + title + ".html");
         try {
             target.createNewFile();
         } catch (IOException e) {
@@ -352,6 +355,35 @@ public class Filer {
                 jsonObject.put("name", profile.getFullName());
                 jsonObject.put("email", profile.getEmail());
                 jsonObject.put("phone", profile.getPhone());
+                jsonObject.put("hasEmail", profile.getHasEmail());
+                jsonObject.put("isTeacher", profile.getIsTeacher());
+                jsonObject.put("country", profile.getCountry());
+                jsonObject.put("index", profile.getIndex());
+
+                if (profile.getWebsites().size() > 0)
+                    jsonObject.put("hasWebsites", true);
+                else
+                    jsonObject.put("hasWebsites", false);
+
+
+                if (profile.getJournals().size() > 0)
+                    jsonObject.put("hasJournals", true);
+                else
+                    jsonObject.put("hasJournals", false);
+
+
+                if (profile.getSkills().size() > 0)
+                    jsonObject.put("hasSkills", true);
+                else
+                    jsonObject.put("hasSkills", false);
+
+
+                if (profile.getExperiences().size() > 0)
+                    jsonObject.put("hasExperiences", true);
+                else
+                    jsonObject.put("hasExperiences", false);
+
+
             }
 
             if (hasWebsies) {
@@ -431,7 +463,7 @@ public class Filer {
             jsonArray.add(jsonObject);
         }
         try {
-            BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(new File("exportedJSON-" + country + ".json")));
+            BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(new File("exportedJSON-new-" + country + ".json")));
             bufferedWriter.write(jsonArray.toJSONString());
             bufferedWriter.close();
         } catch (IOException e) {
